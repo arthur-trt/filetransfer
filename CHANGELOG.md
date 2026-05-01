@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/arthur-trt/filetransfer/compare/v1.1.0...v1.1.1) (2026-05-01)
+
+
+### Bug Fixes
+
+* **action:** Don't build on PR ([f274651](https://github.com/arthur-trt/filetransfer/commit/f274651e20b94b05d68ab3147c7859c132a82563))
+* include prisma CLI bin in runner image ([159e190](https://github.com/arthur-trt/filetransfer/commit/159e19053083f9a69b33853f1cb697f3228ed509))
+
 ## [1.1.0](https://github.com/arthur-trt/filetransfer/compare/v1.0.0...v1.1.0) (2026-05-01)
 
 
