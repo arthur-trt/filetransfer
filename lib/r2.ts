@@ -19,19 +19,28 @@ function required(name: string): string {
   return v;
 }
 
-const endpoint = `https://${required("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`;
+let _client: S3Client | null = null;
+let _bucket: string | null = null;
 
-export const r2 = new S3Client({
-  region: "auto",
-  endpoint,
-  credentials: {
-    accessKeyId: required("R2_ACCESS_KEY_ID"),
-    secretAccessKey: required("R2_SECRET_ACCESS_KEY"),
-  },
-  forcePathStyle: true,
-});
+function client(): S3Client {
+  if (_client) return _client;
+  _client = new S3Client({
+    region: "auto",
+    endpoint: `https://${required("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: required("R2_ACCESS_KEY_ID"),
+      secretAccessKey: required("R2_SECRET_ACCESS_KEY"),
+    },
+    forcePathStyle: true,
+  });
+  return _client;
+}
 
-export const BUCKET = required("R2_BUCKET");
+function bucket(): string {
+  if (_bucket) return _bucket;
+  _bucket = required("R2_BUCKET");
+  return _bucket;
+}
 
 const PUT_TTL_SECONDS = 15 * 60;
 const GET_TTL_SECONDS = 60 * 60;
@@ -42,18 +51,18 @@ export function transferKey(transferId: string, name: string): string {
 }
 
 export async function presignPut(key: string): Promise<string> {
-  const cmd = new PutObjectCommand({ Bucket: BUCKET, Key: key });
-  return getSignedUrl(r2, cmd, { expiresIn: PUT_TTL_SECONDS });
+  const cmd = new PutObjectCommand({ Bucket: bucket(), Key: key });
+  return getSignedUrl(client(), cmd, { expiresIn: PUT_TTL_SECONDS });
 }
 
 export async function presignGet(key: string): Promise<string> {
-  const cmd = new GetObjectCommand({ Bucket: BUCKET, Key: key });
-  return getSignedUrl(r2, cmd, { expiresIn: GET_TTL_SECONDS });
+  const cmd = new GetObjectCommand({ Bucket: bucket(), Key: key });
+  return getSignedUrl(client(), cmd, { expiresIn: GET_TTL_SECONDS });
 }
 
 export async function createMultipart(key: string): Promise<string> {
-  const out = await r2.send(
-    new CreateMultipartUploadCommand({ Bucket: BUCKET, Key: key }),
+  const out = await client().send(
+    new CreateMultipartUploadCommand({ Bucket: bucket(), Key: key }),
   );
   if (!out.UploadId) throw new Error("R2: no UploadId returned");
   return out.UploadId;
@@ -65,12 +74,12 @@ export async function presignUploadPart(
   partNumber: number,
 ): Promise<string> {
   const cmd = new UploadPartCommand({
-    Bucket: BUCKET,
+    Bucket: bucket(),
     Key: key,
     UploadId: uploadId,
     PartNumber: partNumber,
   });
-  return getSignedUrl(r2, cmd, { expiresIn: PART_TTL_SECONDS });
+  return getSignedUrl(client(), cmd, { expiresIn: PART_TTL_SECONDS });
 }
 
 export async function completeMultipart(
@@ -78,9 +87,9 @@ export async function completeMultipart(
   uploadId: string,
   parts: { PartNumber: number; ETag: string }[],
 ): Promise<void> {
-  await r2.send(
+  await client().send(
     new CompleteMultipartUploadCommand({
-      Bucket: BUCKET,
+      Bucket: bucket(),
       Key: key,
       UploadId: uploadId,
       MultipartUpload: { Parts: parts },
@@ -92,9 +101,9 @@ export async function abortMultipart(
   key: string,
   uploadId: string,
 ): Promise<void> {
-  await r2.send(
+  await client().send(
     new AbortMultipartUploadCommand({
-      Bucket: BUCKET,
+      Bucket: bucket(),
       Key: key,
       UploadId: uploadId,
     }),
@@ -103,7 +112,7 @@ export async function abortMultipart(
 
 export async function headObject(key: string): Promise<boolean> {
   try {
-    await r2.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }));
+    await client().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));
     return true;
   } catch {
     return false;
@@ -114,18 +123,18 @@ export async function deletePrefix(prefix: string): Promise<number> {
   let total = 0;
   let continuationToken: string | undefined;
   do {
-    const list = await r2.send(
+    const list = await client().send(
       new ListObjectsV2Command({
-        Bucket: BUCKET,
+        Bucket: bucket(),
         Prefix: prefix,
         ContinuationToken: continuationToken,
       }),
     );
     const keys = list.Contents?.map((o) => o.Key!).filter(Boolean) ?? [];
     if (keys.length) {
-      await r2.send(
+      await client().send(
         new DeleteObjectsCommand({
-          Bucket: BUCKET,
+          Bucket: bucket(),
           Delete: { Objects: keys.map((Key) => ({ Key })) },
         }),
       );
@@ -137,5 +146,5 @@ export async function deletePrefix(prefix: string): Promise<number> {
 }
 
 export async function deleteObject(key: string): Promise<void> {
-  await r2.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+  await client().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }));
 }
