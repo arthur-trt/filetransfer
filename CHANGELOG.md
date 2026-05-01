@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/arthur-trt/filetransfer/compare/v1.1.1...v1.1.2) (2026-05-01)
+
+
+### Bug Fixes
+
+* increase multipart ([5b9a642](https://github.com/arthur-trt/filetransfer/commit/5b9a642c00318de9fe59139155e2a1a8a2be5bd9))
+
 ## [1.1.1](https://github.com/arthur-trt/filetransfer/compare/v1.1.0...v1.1.1) (2026-05-01)
 
 
