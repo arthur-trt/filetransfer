@@ -19,7 +19,7 @@ import { importPasswordDerivedKey, wrapKey } from "@/lib/crypto/wrap";
 
 const MULTIPART_THRESHOLD = 100 * 1024 * 1024;
 const MULTIPART_PART_SIZE = 32 * 1024 * 1024;
-const MULTIPART_CONCURRENCY = 3;
+const MULTIPART_CONCURRENCY = 6;
 const PART_URL_PREFETCH_BATCH = 24;
 
 export type UploadPhase =
