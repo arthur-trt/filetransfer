@@ -1,0 +1,148 @@
+:root {
+  --bg: #f5f2ec;
+  --bg-raised: #efeae0;
+  --ink: #141414;
+  --ink-muted: #5c5a55;
+  --rule: rgba(20, 20, 20, 0.1);
+  --rule-strong: rgba(20, 20, 20, 0.22);
+  --accent: #1f6f43;
+  --accent-hover: #185634;
+  --accent-ink: #f5f2ec;
+  --danger: #c53030;
+
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+  --s-10: 128px;
+
+  --r-1: 2px;
+  --r-2: 6px;
+  --r-3: 12px;
+
+  --max-w: 1200px;
+  --pad-x: 32px;
+  --gutter: 24px;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.1, 1);
+  --t-fast: 120ms;
+  --t-med: 240ms;
+  --t-slow: 480ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0f0c;
+    --bg-raised: #151713;
+    --ink: #ece8df;
+    --ink-muted: #8a887f;
+    --rule: rgba(236, 232, 223, 0.12);
+    --rule-strong: rgba(236, 232, 223, 0.28);
+    --accent: #2e9b62;
+    --accent-hover: #3ab573;
+    --accent-ink: #0e0f0c;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --pad-x: 20px;
+    --gutter: 16px;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.display {
+  font-size: clamp(44px, 7.2vw, 72px);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  font-weight: 500;
+}
+
+.h1 {
+  font-size: 40px;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
+
+.h2 {
+  font-size: 28px;
+  line-height: 1.14;
+  letter-spacing: -0.015em;
+  font-weight: 500;
+}
+
+.body {
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.small {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.micro {
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "zero", "cv11";
+}
+
+.accent {
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

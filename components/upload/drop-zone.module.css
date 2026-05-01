@@ -1,0 +1,48 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: transparent;
+  transition: background var(--t-med) var(--ease);
+  z-index: 50;
+}
+
+.overlayActive {
+  background: rgba(31, 111, 67, 0.06);
+}
+
+.hairline {
+  position: absolute;
+  inset: 12px;
+  border: 1px dashed transparent;
+  border-radius: var(--r-2);
+  transition: border-color var(--t-med) var(--ease);
+}
+
+.overlayActive .hairline {
+  border-color: var(--accent);
+}
+
+.hint {
+  position: absolute;
+  bottom: calc(var(--s-8) + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+  transition: transform var(--t-med) var(--ease),
+    opacity var(--t-med) var(--ease);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--bg);
+  padding: var(--s-3) var(--s-5);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-1);
+  font-weight: 500;
+}
+
+.overlayActive .hint {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

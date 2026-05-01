@@ -1,0 +1,29 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: 3px 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-1);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.accent {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.muted {
+  color: var(--ink-muted);
+}
+
+.danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}

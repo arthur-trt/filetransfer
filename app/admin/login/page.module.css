@@ -1,0 +1,32 @@
+.wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-8) 0;
+}
+
+.card {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  padding: var(--s-6);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-3);
+}
+
+.title {
+  font-size: 24px;
+  letter-spacing: -0.015em;
+  font-weight: 500;
+  margin: 0;
+}
+
+.sub {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin: 0;
+  line-height: 1.5;
+}

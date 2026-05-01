@@ -1,0 +1,74 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-5);
+  height: 44px;
+  border: 1px solid transparent;
+  border-radius: var(--r-1);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
+  text-decoration: none;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.sm {
+  height: 32px;
+  padding: 0 var(--s-4);
+  font-size: 13px;
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--ink);
+}
+.secondary:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: transparent;
+}
+.ghost:hover:not(:disabled) {
+  background: var(--rule);
+}
+
+.danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--bg);
+}

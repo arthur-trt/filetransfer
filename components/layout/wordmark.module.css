@@ -1,0 +1,44 @@
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.glyph {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  position: relative;
+}
+
+.glyph::before,
+.glyph::after {
+  content: "";
+  position: absolute;
+  background: var(--ink);
+}
+
+.glyph::before {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.glyph::after {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--accent);
+}
+
+.name {
+  letter-spacing: 0.02em;
+}

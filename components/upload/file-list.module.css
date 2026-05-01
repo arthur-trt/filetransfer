@@ -1,0 +1,101 @@
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-7) var(--s-5);
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--r-2);
+  text-align: center;
+  gap: var(--s-3);
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease);
+}
+
+.empty:hover {
+  border-color: var(--accent);
+  background: rgba(31, 111, 67, 0.04);
+}
+
+.emptyHead {
+  font-size: 16px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.emptySub {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--rule);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.name {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.size {
+  font-size: 13px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.remove {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: var(--r-1);
+}
+
+.remove:hover {
+  background: var(--rule);
+  color: var(--ink);
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: var(--s-3);
+  font-size: 13px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.totalStrong {
+  color: var(--ink);
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}

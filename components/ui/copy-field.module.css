@@ -1,0 +1,52 @@
+.wrap {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-1);
+  overflow: hidden;
+  background: var(--bg-raised);
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.wrap:focus-within {
+  border-color: var(--accent);
+}
+
+.text {
+  flex: 1;
+  padding: var(--s-3) var(--s-4);
+  font-size: 14px;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "zero";
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.btn {
+  padding: 0 var(--s-4);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--ink);
+  border: none;
+  border-left: 1px solid var(--rule-strong);
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.copied {
+  color: var(--accent);
+}

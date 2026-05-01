@@ -1,0 +1,21 @@
+{
+  "release-type": "node",
+  "packages": {
+    ".": {
+      "package-name": "filetransfer",
+      "bump-minor-pre-major": true,
+      "draft": false,
+      "prerelease": false,
+      "include-component-in-tag": false
+    }
+  },
+  "include-v-in-tag": true,
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "perf", "section": "Performance" },
+    { "type": "refactor", "section": "Refactor" },
+    { "type": "docs", "section": "Documentation" },
+    { "type": "chore", "section": "Chore", "hidden": true }
+  ]
+}
