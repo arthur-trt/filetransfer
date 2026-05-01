@@ -59,7 +59,9 @@ describe("encrypt/decrypt round-trip", () => {
 
   it("round-trips a multi-chunk buffer", async () => {
     const { key } = await generateFileKey();
-    const size = CHUNK_PLAINTEXT_SIZE * 2 + 123;
+    // Keep just past the chunk boundary so we exercise the multi-chunk path
+    // without allocating tens of MB in CI.
+    const size = CHUNK_PLAINTEXT_SIZE + 1024;
     const plaintext = randomBytes(size);
     const ct = await drainToBytes(encryptStream(key, streamFromBytes(plaintext)));
     const pt = await drainToBytes(decryptStream(key, streamFromBytes(ct)));
