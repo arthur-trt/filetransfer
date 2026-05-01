@@ -5,6 +5,7 @@ import styles from "./page.module.css";
 import { PageFrame } from "@/components/layout/page-frame";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Textarea, Segmented } from "@/components/ui/field";
+import { ChipInput } from "@/components/ui/chip-input";
 import { Button } from "@/components/ui/button";
 import { Meter } from "@/components/ui/meter";
 import { formatBytes, formatDuration } from "@/lib/format";
@@ -31,7 +32,7 @@ const CAP_TO_NUMBER: Record<Cap, 1 | 5 | 25 | null> = {
 
 export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
-  const [to, setTo] = useState("");
+  const [recipients, setRecipients] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [password, setPassword] = useState("");
   const [expires, setExpires] = useState<Expires>("7d");
@@ -48,7 +49,7 @@ export default function UploadPage() {
 
   function startOver() {
     setFiles([]);
-    setTo("");
+    setRecipients([]);
     setMessage("");
     setPassword("");
     upload.reset();
@@ -60,7 +61,7 @@ export default function UploadPage() {
       files,
       ttl: expires,
       downloadCap: CAP_TO_NUMBER[cap],
-      recipientEmail: to || undefined,
+      recipientEmails: recipients.length > 0 ? recipients : undefined,
       senderMessage: message || undefined,
       password: password || undefined,
     });
@@ -115,7 +116,7 @@ export default function UploadPage() {
                 totalBytes={totalBytes}
                 fileCount={files.length}
                 expiresLabel={EXPIRES_LABEL[expires]}
-                recipient={to || undefined}
+                recipient={recipients.length > 0 ? recipients.join(", ") : undefined}
                 onStartOver={startOver}
               />
             </Card>
@@ -165,13 +166,13 @@ export default function UploadPage() {
                     <div className={styles.fieldsGrid}>
                       <Field
                         label="To"
-                        hint="We'll email them the link. The #key is in that URL — see README on threat model."
+                        hint="Press Enter or comma to add each recipient (up to 10). We'll email the link to each one separately."
                       >
-                        <Input
-                          type="email"
+                        <ChipInput
+                          values={recipients}
+                          onChange={setRecipients}
                           placeholder="name@example.com"
-                          value={to}
-                          onChange={(e) => setTo(e.target.value)}
+                          max={10}
                         />
                       </Field>
                       <Field label="Message">

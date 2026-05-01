@@ -24,14 +24,22 @@ let _bucket: string | null = null;
 
 function client(): S3Client {
   if (_client) return _client;
+  // Prefer R2_PUBLIC_URL when set (custom domain → served via Cloudflare CDN).
+  // Presigned URLs include the host in the signature, so we must sign
+  // against the same host the browser will request.
+  const publicUrl = process.env.R2_PUBLIC_URL;
+  const endpoint =
+    publicUrl && publicUrl.length > 0
+      ? publicUrl
+      : `https://${required("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`;
   _client = new S3Client({
     region: "auto",
-    endpoint: `https://${required("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`,
+    endpoint,
     credentials: {
       accessKeyId: required("R2_ACCESS_KEY_ID"),
       secretAccessKey: required("R2_SECRET_ACCESS_KEY"),
     },
-    forcePathStyle: true,
+    forcePathStyle: false,
   });
   return _client;
 }

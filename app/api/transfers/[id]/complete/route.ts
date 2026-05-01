@@ -37,7 +37,7 @@ export async function POST(
       fileCount: true,
       totalBytes: true,
       multipartIds: true,
-      pendingRecipient: true,
+      pendingRecipients: true,
       pendingMessage: true,
     },
   });
@@ -74,21 +74,21 @@ export async function POST(
     data: {
       completed: true,
       multipartIds: Prisma.JsonNull,
-      pendingRecipient: null,
+      pendingRecipients: [],
       pendingMessage: null,
     },
   });
 
-  if (transfer.pendingRecipient) {
+  for (const to of transfer.pendingRecipients) {
     sendTransferEmail({
-      to: transfer.pendingRecipient,
+      to,
       shareUrl: parsed.data.shareUrl,
       message: transfer.pendingMessage,
       fileCount: transfer.fileCount,
       totalBytes: Number(transfer.totalBytes),
       expiresAt: transfer.expiresAt,
     }).catch((err) => {
-      console.error("[email] delivery failed", { id, err: String(err) });
+      console.error("[email] delivery failed", { id, to, err: String(err) });
     });
   }
 

@@ -119,8 +119,8 @@ export async function POST(req: NextRequest) {
       r2Keys,
       multipartIds:
         Object.keys(multipartIds).length > 0 ? multipartIds : undefined,
-      emailedTo: !!input.recipientEmail,
-      pendingRecipient: input.recipientEmail ?? null,
+      emailedTo: (input.recipientEmails?.length ?? 0) > 0,
+      pendingRecipients: input.recipientEmails ?? [],
       pendingMessage: input.senderMessage ?? null,
     },
   });

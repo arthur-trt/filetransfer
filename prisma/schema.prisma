@@ -75,8 +75,8 @@ model Transfer {
   r2Keys        String[] @default([])
   multipartIds  Json?
 
-  pendingRecipient String?
-  pendingMessage   String?
+  pendingRecipients String[] @default([])
+  pendingMessage    String?
 
   @@index([expiresAt])
   @@index([revoked, expiresAt])

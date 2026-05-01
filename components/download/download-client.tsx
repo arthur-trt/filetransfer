@@ -18,6 +18,7 @@ import { deriveKey, type KdfParams } from "@/lib/crypto/argon";
 import { importPasswordDerivedKey, unwrapKey } from "@/lib/crypto/wrap";
 import {
   BLOB_FALLBACK_MAX_BYTES,
+  StreamingUnsupportedError,
   hasFileSystemAccess,
   saveBlobFromStream,
   saveStream,
@@ -206,38 +207,65 @@ export function DownloadClient({ id }: { id: string }) {
       return decryptStream(fileKey, resp.body);
     };
 
-    try {
+    const buildStream = (): ReadableStream<Uint8Array> => {
       if (manifest.files.length === 1) {
-        const mf = manifest.files[0];
-        const plaintext = await decryptedFor(0);
-        if (streaming) {
-          await saveStream(plaintext, mf.name, onBytes);
-        } else {
-          await saveBlobFromStream(plaintext, mf.name, onBytes);
-        }
-      } else {
-        const entries = manifest.files.map((mf, i) => ({
-          name: mf.name,
-          lastModified: new Date(),
-          input: lazyStream(() => decryptedFor(i)),
-        }));
-        const zipStream = downloadZip(entries).body;
-        if (!zipStream) throw new Error("zip stream unavailable");
-        const zipName = `filetransfer-${id}.zip`;
-        if (streaming) {
-          await saveStream(zipStream, zipName, onBytes);
-        } else {
-          await saveBlobFromStream(zipStream, zipName, onBytes);
+        return lazyStream(() => decryptedFor(0));
+      }
+      const entries = manifest.files.map((mf, i) => ({
+        name: mf.name,
+        lastModified: new Date(),
+        input: lazyStream(() => decryptedFor(i)),
+      }));
+      const zipStream = downloadZip(entries).body;
+      if (!zipStream) throw new Error("zip stream unavailable");
+      return zipStream;
+    };
+
+    const filename =
+      manifest.files.length === 1
+        ? manifest.files[0].name
+        : `filetransfer-${id}.zip`;
+
+    const saveWithFallback = async () => {
+      if (streaming) {
+        try {
+          await saveStream(buildStream(), filename, onBytes);
+          return;
+        } catch (err) {
+          if (!(err instanceof StreamingUnsupportedError)) throw err;
+          // Browser lied about FS Access support (e.g. Samsung Internet).
+          // Fall through to blob save, enforcing the size cap.
+          if (totalBytes > BLOB_FALLBACK_MAX_BYTES) {
+            throw new Error(
+              `This browser doesn't support streaming downloads and this transfer is too large (${formatBytes(
+                totalBytes,
+              )}). Open the link in Chrome or Edge, or ask the sender to split the transfer.`,
+            );
+          }
+          // Reset progress — first attempt may have written some before failing.
+          written = 0;
+          setProgress(0);
+          setStatusText("Falling back to in-memory download…");
         }
       }
+      await saveBlobFromStream(buildStream(), filename, onBytes);
+    };
+
+    try {
+      await saveWithFallback();
       setStatusText("Done.");
       setPhase("done");
     } catch (err) {
       setPhase("error");
+      // Don't pretend every failure is a tamper — surface the real message
+      // and only blame the ciphertext for OperationError (GCM auth fail).
+      const msg = err instanceof Error ? err.message : "Download failed.";
+      const isTamper =
+        err instanceof Error && err.name === "OperationError";
       setError(
-        err instanceof Error
-          ? `Couldn't decrypt — the file may be tampered or incomplete (${err.message})`
-          : "Decryption failed.",
+        isTamper
+          ? `Couldn't decrypt — the file may be tampered or incomplete (${msg})`
+          : msg,
       );
     }
   }

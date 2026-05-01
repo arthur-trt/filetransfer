@@ -4,6 +4,7 @@ export const MAX_FILE_BYTES = 50 * 1024 ** 3;
 export const MAX_TRANSFER_BYTES = 100 * 1024 ** 3;
 export const MAX_FILES_PER_TRANSFER = 100;
 export const MAX_MESSAGE_LEN = 2000;
+export const MAX_RECIPIENTS = 10;
 export const MULTIPART_THRESHOLD = 100 * 1024 * 1024;
 export const MULTIPART_PART_SIZE = 32 * 1024 * 1024;
 
@@ -49,7 +50,11 @@ export const CreateTransferSchema = z
     password: PasswordBundleSchema.nullable().optional(),
     ttl: TtlSchema,
     downloadCap: DownloadCapSchema,
-    recipientEmail: z.string().email().optional().nullable(),
+    recipientEmails: z
+      .array(z.string().email())
+      .max(MAX_RECIPIENTS, `At most ${MAX_RECIPIENTS} recipients allowed`)
+      .optional()
+      .nullable(),
     senderMessage: z.string().max(MAX_MESSAGE_LEN).optional().nullable(),
   })
   .refine(

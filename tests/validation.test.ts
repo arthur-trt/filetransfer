@@ -102,22 +102,44 @@ describe("CreateTransferSchema", () => {
     ).toBe(false);
   });
 
-  it("rejects invalid email formats when recipientEmail is set", () => {
+  it("rejects invalid email in recipientEmails[]", () => {
     expect(
       CreateTransferSchema.safeParse({
         ...validBase,
-        recipientEmail: "not-an-email",
+        recipientEmails: ["not-an-email"],
       }).success,
     ).toBe(false);
   });
 
-  it("accepts a null recipientEmail", () => {
+  it("accepts null or empty recipientEmails", () => {
+    expect(
+      CreateTransferSchema.safeParse({ ...validBase, recipientEmails: null })
+        .success,
+    ).toBe(true);
+    expect(
+      CreateTransferSchema.safeParse({ ...validBase, recipientEmails: [] })
+        .success,
+    ).toBe(true);
+  });
+
+  it("accepts up to MAX_RECIPIENTS recipient emails", () => {
+    const emails = Array.from({ length: 10 }, (_, i) => `user${i}@example.com`);
     expect(
       CreateTransferSchema.safeParse({
         ...validBase,
-        recipientEmail: null,
+        recipientEmails: emails,
       }).success,
     ).toBe(true);
+  });
+
+  it("rejects more than MAX_RECIPIENTS recipient emails", () => {
+    const emails = Array.from({ length: 11 }, (_, i) => `user${i}@example.com`);
+    expect(
+      CreateTransferSchema.safeParse({
+        ...validBase,
+        recipientEmails: emails,
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects sender message over MAX_MESSAGE_LEN", () => {

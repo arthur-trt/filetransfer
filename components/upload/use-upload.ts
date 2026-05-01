@@ -36,7 +36,7 @@ type StartArgs = {
   files: File[];
   ttl: "1d" | "7d" | "30d";
   downloadCap: 1 | 5 | 25 | null;
-  recipientEmail?: string;
+  recipientEmails?: string[];
   senderMessage?: string;
   password?: string;
 };
@@ -156,7 +156,10 @@ export function useUpload() {
           password: passwordBundle,
           ttl: args.ttl,
           downloadCap: args.downloadCap,
-          recipientEmail: args.recipientEmail || null,
+          recipientEmails:
+            args.recipientEmails && args.recipientEmails.length > 0
+              ? args.recipientEmails
+              : null,
           senderMessage: args.senderMessage || null,
         }),
       });
@@ -405,33 +408,67 @@ async function uploadMultipart(
     }
   };
 
-  let buffer = new Uint8Array(0);
+  // Chunk queue: never merge into one growing buffer (V8 caps ArrayBuffer
+  // allocations and huge arrays cause OOM). We accumulate incoming chunks as
+  // a list, and assemble exactly one part's worth (32 MiB) when cutting.
+  const queue: Uint8Array[] = [];
+  let queuedBytes = 0;
   let nextPart = 1;
+
+  // Assemble a single part of up to MULTIPART_PART_SIZE bytes from the head
+  // of the queue. Handles splitting a chunk that straddles the boundary.
+  const takePart = (size: number): Uint8Array => {
+    const out = new Uint8Array(size);
+    let offset = 0;
+    while (offset < size && queue.length > 0) {
+      const head = queue[0];
+      const need = size - offset;
+      if (head.length <= need) {
+        out.set(head, offset);
+        offset += head.length;
+        queue.shift();
+      } else {
+        out.set(head.subarray(0, need), offset);
+        queue[0] = head.subarray(need);
+        offset += need;
+      }
+    }
+    queuedBytes -= size;
+    return out;
+  };
 
   const cutParts = async (final: boolean) => {
     while (
-      buffer.length >= MULTIPART_PART_SIZE ||
-      (final && buffer.length > 0)
+      queuedBytes >= MULTIPART_PART_SIZE ||
+      (final && queuedBytes > 0)
     ) {
       if (firstError) return;
-      const take = Math.min(buffer.length, MULTIPART_PART_SIZE);
-      const slice = buffer.slice(0, take);
-      buffer = buffer.slice(take);
+      const take = Math.min(queuedBytes, MULTIPART_PART_SIZE);
       await waitForSlot();
       if (firstError) return;
-      launch(nextPart++, slice);
+      const body = takePart(take);
+      launch(nextPart++, body);
     }
   };
 
   try {
     while (!firstError) {
+      // Backpressure: before reading more, let the worker pool drain if it's
+      // saturated AND we already have one part's worth queued up. This caps
+      // in-flight memory at roughly MULTIPART_CONCURRENCY * MULTIPART_PART_SIZE
+      // (~192 MiB at concurrency 6) regardless of file size.
+      if (
+        queuedBytes >= MULTIPART_PART_SIZE &&
+        inflight.size >= MULTIPART_CONCURRENCY
+      ) {
+        await Promise.race(inflight);
+        continue;
+      }
       const { value, done } = await reader.read();
       if (done) break;
       if (value && value.length) {
-        const merged = new Uint8Array(buffer.length + value.length);
-        merged.set(buffer, 0);
-        merged.set(value, buffer.length);
-        buffer = merged;
+        queue.push(value);
+        queuedBytes += value.length;
         await cutParts(false);
       }
     }
