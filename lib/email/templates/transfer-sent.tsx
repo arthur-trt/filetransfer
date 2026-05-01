@@ -33,7 +33,7 @@ export function TransferSentEmail({
   return (
     <Html>
       <Head />
-      <Preview>Someone sent you {fileCount} file(s) via filetransfer</Preview>
+      <Preview>{`Someone sent you ${fileCount} file(s) via filetransfer`}</Preview>
       <Body
         style={{
           backgroundColor: bone,
