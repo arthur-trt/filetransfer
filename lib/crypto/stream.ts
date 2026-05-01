@@ -127,33 +127,36 @@ export function decryptStream(
   return new ReadableStream<Uint8Array>({
     async pull(controller) {
       try {
-        if (!(await need(LEN_PREFIX_BYTES))) {
-          controller.close();
-          return;
-        }
-        const view = new DataView(
-          buffer.buffer,
-          buffer.byteOffset,
-          LEN_PREFIX_BYTES,
-        );
-        const frameLen = view.getUint32(0, false);
-        if (!(await need(LEN_PREFIX_BYTES + frameLen))) {
-          throw new Error("truncated ciphertext stream");
-        }
-        const iv = buffer.slice(
-          LEN_PREFIX_BYTES,
-          LEN_PREFIX_BYTES + IV_BYTES,
-        );
-        const ct = buffer.slice(
-          LEN_PREFIX_BYTES + IV_BYTES,
-          LEN_PREFIX_BYTES + frameLen,
-        );
-        buffer = buffer.slice(LEN_PREFIX_BYTES + frameLen);
-        const pt = await decryptChunk(key, iv, ct);
-        if (pt.length > 0) {
-          controller.enqueue(pt);
-        } else if (sourceDone && buffer.length === 0) {
-          controller.close();
+        while (true) {
+          if (!(await need(LEN_PREFIX_BYTES))) {
+            controller.close();
+            return;
+          }
+          const view = new DataView(
+            buffer.buffer,
+            buffer.byteOffset,
+            LEN_PREFIX_BYTES,
+          );
+          const frameLen = view.getUint32(0, false);
+          if (!(await need(LEN_PREFIX_BYTES + frameLen))) {
+            throw new Error("truncated ciphertext stream");
+          }
+          const iv = buffer.slice(
+            LEN_PREFIX_BYTES,
+            LEN_PREFIX_BYTES + IV_BYTES,
+          );
+          const ct = buffer.slice(
+            LEN_PREFIX_BYTES + IV_BYTES,
+            LEN_PREFIX_BYTES + frameLen,
+          );
+          buffer = buffer.slice(LEN_PREFIX_BYTES + frameLen);
+          const pt = await decryptChunk(key, iv, ct);
+          if (pt.length > 0) {
+            controller.enqueue(pt);
+            return;
+          }
+          // Empty frame (legitimately encrypted empty input or a marker) —
+          // keep pulling; don't leave the stream deadlocked with no work.
         }
       } catch (err) {
         controller.error(err);

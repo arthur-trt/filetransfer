@@ -16,6 +16,15 @@ npm run dev
 
 Open http://localhost:3000.
 
+## Tests
+
+```bash
+npm test           # run once
+npm run test:watch # re-run on file changes
+```
+
+Covers the crypto round-trips (encrypt/decrypt streams, password wrap/unwrap, Argon2id, fragment encoding, manifest) and Zod validation. The same suite runs on every PR via `.github/workflows/ci.yml` — green CI is a prerequisite for auto-merging Dependabot / Renovate bumps.
+
 ## Environment
 
 - `DATABASE_URL` — Postgres (Neon, Supabase, local, etc.)
