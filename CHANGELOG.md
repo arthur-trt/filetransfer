@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/arthur-trt/filetransfer/compare/v1.1.2...v1.2.0) (2026-05-01)
+
+
+### Features
+
+* Multiple email recipient ([d15b7d3](https://github.com/arthur-trt/filetransfer/commit/d15b7d3a039992023ce275d5dac99a3477e68ee8))
+
 ## [1.1.2](https://github.com/arthur-trt/filetransfer/compare/v1.1.1...v1.1.2) (2026-05-01)
 
 
