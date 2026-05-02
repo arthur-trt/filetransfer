@@ -24,23 +24,18 @@ let _bucket: string | null = null;
 
 function client(): S3Client {
   if (_client) return _client;
-  // Prefer R2_PUBLIC_URL when set (custom domain → served via Cloudflare CDN).
-  // Presigned URLs include the host in the signature, so we must sign
-  // against the same host the browser will request.
+  // Always sign against the canonical R2 endpoint. Cloudflare's custom
+  // domains for R2 are bucket-scoped (they rewrite `<domain>/<key>` to
+  // `<bucket>/<key>` transparently), which breaks presigned URLs: the
+  // signature covers a specific URL structure, and the rewrite invalidates
+  // it. Path-style + custom domain hits 401; virtual-host style doubles
+  // the bucket into the hostname. No combination works.
   //
-  // Path-style is required even for custom domains: virtual-host style would
-  // prepend the bucket name to the host (`files.files-cdn.arthur-trt.fr`),
-  // doubling it. With path-style the URL is `files-cdn.arthur-trt.fr/<bucket>/<key>`
-  // — Cloudflare's custom-domain proxy strips the bucket prefix transparently
-  // when it maps the request to R2.
-  const publicUrl = process.env.R2_PUBLIC_URL;
-  const endpoint =
-    publicUrl && publicUrl.length > 0
-      ? publicUrl
-      : `https://${required("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`;
+  // R2_PUBLIC_URL is kept as an env var for future use (e.g. unsigned
+  // public objects) but is intentionally ignored for presigning.
   _client = new S3Client({
     region: "auto",
-    endpoint,
+    endpoint: `https://${required("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`,
     credentials: {
       accessKeyId: required("R2_ACCESS_KEY_ID"),
       secretAccessKey: required("R2_SECRET_ACCESS_KEY"),
