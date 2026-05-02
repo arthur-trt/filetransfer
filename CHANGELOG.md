@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.3](https://github.com/arthur-trt/filetransfer/compare/v1.2.2...v1.2.3) (2026-05-02)
+
+
+### Bug Fixes
+
+* rollback r2 canonical endpoint ([bbd7103](https://github.com/arthur-trt/filetransfer/commit/bbd71033b94f4eb85421892d4cabd6341daf1107))
+
 ## [1.2.2](https://github.com/arthur-trt/filetransfer/compare/v1.2.1...v1.2.2) (2026-05-02)
 
 
