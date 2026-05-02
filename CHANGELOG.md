@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/arthur-trt/filetransfer/compare/v1.2.0...v1.2.1) (2026-05-02)
+
+
+### Bug Fixes
+
+* R2 URL ([c4e8106](https://github.com/arthur-trt/filetransfer/commit/c4e81060a7454652153ea2201e4eb9b7251f6d47))
+
 ## [1.2.0](https://github.com/arthur-trt/filetransfer/compare/v1.1.2...v1.2.0) (2026-05-01)
 
 
