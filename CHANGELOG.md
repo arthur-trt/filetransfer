@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/arthur-trt/filetransfer/compare/v1.2.3...v1.3.0) (2026-05-02)
+
+
+### Features
+
+* resume downloads across network blips via session tokens + Range requests ([625995c](https://github.com/arthur-trt/filetransfer/commit/625995ca6993ccfcb039a9b56fc05579dc01f992))
+
 ## [1.2.3](https://github.com/arthur-trt/filetransfer/compare/v1.2.2...v1.2.3) (2026-05-02)
 
 
