@@ -16,6 +16,7 @@ import {
   type KdfParams,
 } from "@/lib/crypto/argon";
 import { importPasswordDerivedKey, wrapKey } from "@/lib/crypto/wrap";
+import { retryFetchJson } from "@/lib/retry-fetch";
 
 const MULTIPART_THRESHOLD = 100 * 1024 * 1024;
 const MULTIPART_PART_SIZE = 32 * 1024 * 1024;
@@ -142,29 +143,40 @@ export function useUpload() {
 
       setPhase("creating-transfer");
       setStatusText("Preparing upload…");
-      const createRes = await fetch("/api/transfers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: ctrl.signal,
-        body: JSON.stringify({
-          files: args.files.map((f) => ({
-            sizeBytes: f.size,
-            mode:
-              f.size > MULTIPART_THRESHOLD ? "multipart" : "single",
-          })),
-          manifestSize: manifestBlob.length,
-          password: passwordBundle,
-          ttl: args.ttl,
-          downloadCap: args.downloadCap,
-          recipientEmails:
-            args.recipientEmails && args.recipientEmails.length > 0
-              ? args.recipientEmails
-              : null,
-          senderMessage: args.senderMessage || null,
-        }),
-      });
-      if (!createRes.ok) throw new Error(`Create failed (${createRes.status})`);
-      const createData = (await createRes.json()) as CreateResponse;
+      // retryFetchJson survives transient failures (pod restart, 5xx).
+      // Caveat: if a retry happens after the server committed but before
+      // the client received the response, we'll create a second Transfer
+      // row with fresh presigned URLs. The original row's ciphertext will
+      // never arrive, and the stale-incomplete sweep will clean it up.
+      // Cost is one wasted ID, which is acceptable.
+      const createData = await retryFetchJson<CreateResponse>(
+        "/api/transfers",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: ctrl.signal,
+          body: JSON.stringify({
+            files: args.files.map((f) => ({
+              sizeBytes: f.size,
+              mode:
+                f.size > MULTIPART_THRESHOLD ? "multipart" : "single",
+            })),
+            manifestSize: manifestBlob.length,
+            password: passwordBundle,
+            ttl: args.ttl,
+            downloadCap: args.downloadCap,
+            recipientEmails:
+              args.recipientEmails && args.recipientEmails.length > 0
+                ? args.recipientEmails
+                : null,
+            senderMessage: args.senderMessage || null,
+          }),
+        },
+        {
+          onRetry: ({ attempt }) =>
+            setStatusText(`Preparing upload (retry ${attempt})…`),
+        },
+      );
       transferId = createData.id;
 
       setPhase("encrypting-uploading");
@@ -242,21 +254,16 @@ export function useUpload() {
         ? `${window.location.origin}/t/${createData.id}`
         : `${window.location.origin}/t/${createData.id}#${encodeFragment(fileKey.raw)}`;
 
-      const completeRes = await fetch(
-        `/api/transfers/${createData.id}/complete`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: ctrl.signal,
-          body: JSON.stringify({
-            files: completeFilesPayload,
-            shareUrl,
-          }),
-        },
+      // Complete is idempotent on the server: a second call after success
+      // returns 409 `already_completed`. retryFetchJson treats 4xx as
+      // terminal, so we wrap here to catch 409 and treat it as "done".
+      await retryCompleteRequest(
+        createData.id,
+        completeFilesPayload,
+        shareUrl,
+        ctrl.signal,
+        (attempt) => setStatusText(`Finalizing (retry ${attempt})…`),
       );
-      if (!completeRes.ok) {
-        throw new Error(`Complete failed (${completeRes.status})`);
-      }
 
       setPhase("done");
       const rawB64u = bytesToB64u(fileKey.raw);
@@ -298,6 +305,61 @@ export function useUpload() {
     abort,
     reset,
   };
+}
+
+// /complete retry wrapper. Treats 409 `already_completed` as success —
+// happens when a retry fires after the server successfully committed but
+// the client didn't see the response (e.g. pod replaced mid-response).
+async function retryCompleteRequest(
+  transferId: string,
+  files: { fileIndex: number; parts?: { partNumber: number; eTag: string }[] }[],
+  shareUrl: string,
+  signal: AbortSignal,
+  onRetry: (attempt: number) => void,
+): Promise<void> {
+  const body = JSON.stringify({ files, shareUrl });
+  let attempt = 0;
+  const MAX = 5;
+  while (true) {
+    if (signal.aborted) throw new DOMException("aborted", "AbortError");
+    try {
+      const resp = await fetch(`/api/transfers/${transferId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal,
+        body,
+      });
+      if (resp.ok) return;
+      if (resp.status === 409) {
+        // Already completed — must've been a retry after a successful first call.
+        return;
+      }
+      if (resp.status >= 400 && resp.status < 500 && resp.status !== 408) {
+        throw new Error(`Complete failed (${resp.status})`);
+      }
+      throw new Error(`Complete HTTP ${resp.status}`);
+    } catch (err) {
+      if ((err as DOMException)?.name === "AbortError") throw err;
+      if (err instanceof Error && /^Complete failed/.test(err.message)) throw err;
+      attempt += 1;
+      if (attempt >= MAX) throw err;
+      const delayMs = Math.min(300 * 2 ** (attempt - 1), 8000);
+      onRetry(attempt);
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, delayMs);
+        const onAbort = () => {
+          clearTimeout(timer);
+          reject(new DOMException("aborted", "AbortError"));
+        };
+        if (signal.aborted) {
+          clearTimeout(timer);
+          reject(new DOMException("aborted", "AbortError"));
+          return;
+        }
+        signal.addEventListener("abort", onAbort, { once: true });
+      });
+    }
+  }
 }
 
 async function collectStreamToBlob(
@@ -372,16 +434,22 @@ async function uploadMultipart(
       if (!partUrlCache.has(i)) batch.push(i);
     }
     if (batch.length === 0) throw new Error("no parts requested");
-    const res = await fetch(`/api/transfers/${transferId}/parts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal,
-      body: JSON.stringify({ fileIndex: spec.fileIndex, partNumbers: batch }),
-    });
-    if (!res.ok) throw new Error(`Part URL fetch failed (${res.status})`);
-    const data = (await res.json()) as {
+    // /parts is fully idempotent: same inputs produce fresh presigned URLs
+    // with no DB mutation. Safe to retry freely on pod restart.
+    const data = await retryFetchJson<{
       urls: { partNumber: number; url: string }[];
-    };
+    }>(
+      `/api/transfers/${transferId}/parts`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal,
+        body: JSON.stringify({
+          fileIndex: spec.fileIndex,
+          partNumbers: batch,
+        }),
+      },
+    );
     for (const u of data.urls) partUrlCache.set(u.partNumber, u.url);
     const got = partUrlCache.get(n);
     if (!got) throw new Error("part URL missing after fetch");
