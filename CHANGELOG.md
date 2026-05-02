@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/arthur-trt/filetransfer/compare/v1.2.1...v1.2.2) (2026-05-02)
+
+
+### Bug Fixes
+
+* prisma migration ([ab90cad](https://github.com/arthur-trt/filetransfer/commit/ab90cad15d70063ce6a48ee11eed2fcfb597b4d3))
+
 ## [1.2.1](https://github.com/arthur-trt/filetransfer/compare/v1.2.0...v1.2.1) (2026-05-02)
 
 
