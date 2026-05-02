@@ -27,6 +27,12 @@ function client(): S3Client {
   // Prefer R2_PUBLIC_URL when set (custom domain → served via Cloudflare CDN).
   // Presigned URLs include the host in the signature, so we must sign
   // against the same host the browser will request.
+  //
+  // Path-style is required even for custom domains: virtual-host style would
+  // prepend the bucket name to the host (`files.files-cdn.arthur-trt.fr`),
+  // doubling it. With path-style the URL is `files-cdn.arthur-trt.fr/<bucket>/<key>`
+  // — Cloudflare's custom-domain proxy strips the bucket prefix transparently
+  // when it maps the request to R2.
   const publicUrl = process.env.R2_PUBLIC_URL;
   const endpoint =
     publicUrl && publicUrl.length > 0
@@ -39,7 +45,7 @@ function client(): S3Client {
       accessKeyId: required("R2_ACCESS_KEY_ID"),
       secretAccessKey: required("R2_SECRET_ACCESS_KEY"),
     },
-    forcePathStyle: false,
+    forcePathStyle: true,
   });
   return _client;
 }
