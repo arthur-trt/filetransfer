@@ -4,14 +4,25 @@ import { Field, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { signIn } from "@/lib/auth";
 
-type SearchParams = Promise<{ sent?: string; err?: string }>;
+type SearchParams = Promise<{
+  error?: string;
+}>;
+
+const ERROR_MESSAGES: Record<string, string> = {
+  Configuration: "Server misconfiguration. Check the pod logs.",
+  AccessDenied: "This email address isn't allowed to sign in.",
+  Verification: "That link has expired or already been used.",
+};
 
 export default async function AdminLoginPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const { sent, err } = await searchParams;
+  const { error } = await searchParams;
+  const errorMessage = error
+    ? (ERROR_MESSAGES[error] ?? `Sign-in failed (${error}).`)
+    : undefined;
 
   async function doSignIn(formData: FormData) {
     "use server";
@@ -31,28 +42,19 @@ export default async function AdminLoginPage({
               address is accepted.
             </p>
           </div>
-          {sent ? (
-            <p className="small accent">
-              Check your inbox. The link expires shortly.
-            </p>
-          ) : (
-            <form action={doSignIn}>
-              <Field
-                label="Email"
-                error={err ? "That didn't work — try again." : undefined}
-              >
-                <Input
-                  type="email"
-                  name="email"
-                  placeholder="you@domain.com"
-                  required
-                />
-              </Field>
-              <div style={{ marginTop: 16 }}>
-                <Button type="submit">Send link →</Button>
-              </div>
-            </form>
-          )}
+          <form action={doSignIn}>
+            <Field label="Email" error={errorMessage}>
+              <Input
+                type="email"
+                name="email"
+                placeholder="you@domain.com"
+                required
+              />
+            </Field>
+            <div style={{ marginTop: 16 }}>
+              <Button type="submit">Send link →</Button>
+            </div>
+          </form>
         </section>
       </div>
     </PageFrame>

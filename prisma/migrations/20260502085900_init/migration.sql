@@ -63,7 +63,7 @@ CREATE TABLE "Transfer" (
     "emailedTo" BOOLEAN NOT NULL DEFAULT false,
     "r2Keys" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "multipartIds" JSONB,
-    "pendingRecipient" TEXT,
+    "pendingRecipients" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "pendingMessage" TEXT,
 
     CONSTRAINT "Transfer_pkey" PRIMARY KEY ("id")
