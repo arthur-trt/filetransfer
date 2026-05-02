@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/arthur-trt/filetransfer/compare/v1.3.0...v1.4.0) (2026-05-02)
+
+
+### Features
+
+* graceful pod restart handling (preStop + client retry) ([7431cbf](https://github.com/arthur-trt/filetransfer/commit/7431cbfd9532a3e0bef3dc4ee2a8566723145227))
+
 ## [1.3.0](https://github.com/arthur-trt/filetransfer/compare/v1.2.3...v1.3.0) (2026-05-02)
 
 
