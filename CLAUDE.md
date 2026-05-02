@@ -90,6 +90,23 @@ APP_URL=                  # e.g. http://localhost:3000 — used in email links
 CRON_SECRET=              # bearer token for /api/cron/sweep
 ```
 
+## Schema changes
+
+Every schema change ships with a migration file. CI enforces this — `prisma migrate diff` compares migrations to `schema.prisma` and fails the build on drift.
+
+Workflow:
+
+```bash
+# 1. Edit prisma/schema.prisma
+# 2. Generate the migration (applies it locally + writes the SQL file):
+npx prisma migrate dev --name <verb-noun>       # e.g. add-download-history
+# 3. Commit both the schema change and prisma/migrations/<timestamp>_<name>/
+```
+
+Migrations are forward-only. To "roll back" a shipped change, author a new migration that reverses it.
+
+Prod rollout happens automatically: the init container runs `prisma migrate deploy` against the CNPG cluster on every Deployment. Never edit a migration that's already been merged — write a new one.
+
 ## Non-obvious rules
 
 - **Never log or return the URL fragment server-side.** If you catch yourself adding `#key` to a server-side log or response body, stop — it defeats E2E.

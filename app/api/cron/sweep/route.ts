@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const STALE_INCOMPLETE_MS = 60 * 60 * 1000;
+const DOWNLOAD_SESSION_TTL_MS = 60 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -61,5 +62,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return jsonNoStore({ swept });
+  // Garbage-collect expired download sessions. Tokens older than 1h can't
+  // be used for resume anyway (the route-level TTL rejects them).
+  const sessionExpiryBefore = new Date(now.getTime() - DOWNLOAD_SESSION_TTL_MS);
+  const { count: sessionsDeleted } = await prisma.downloadSession.deleteMany({
+    where: { createdAt: { lt: sessionExpiryBefore } },
+  });
+
+  return jsonNoStore({ swept, sessionsDeleted });
 }

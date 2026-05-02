@@ -23,6 +23,7 @@ import {
   saveBlobFromStream,
   saveStream,
 } from "@/lib/save-stream";
+import { resumableFetch } from "@/lib/resume-fetch";
 import { downloadZip } from "client-zip";
 
 type TransferMeta = {
@@ -43,6 +44,7 @@ type TransferMeta = {
 type DownloadUrls = {
   manifestUrl: string;
   files: { fileIndex: number; url: string }[];
+  resumeToken?: string;
 };
 
 type UiPhase =
@@ -196,25 +198,61 @@ export function DownloadClient({ id }: { id: string }) {
       setProgress((written / totalBytes) * 100);
     };
 
-    const urlsByIndex = new Map(urls.files.map((f) => [f.fileIndex, f.url]));
-    const decryptedFor = async (i: number): Promise<ReadableStream<Uint8Array>> => {
-      const url = urlsByIndex.get(i);
-      if (!url) throw new Error(`missing url for file ${i}`);
-      const resp = await fetch(url);
-      if (!resp.ok || !resp.body) {
-        throw new Error(`Fetch failed (${resp.status})`);
-      }
-      return decryptStream(fileKey, resp.body);
+    // Keep a mutable view of the latest presigned URLs; refreshed on retry
+    // if the server hands us updated ones for the same session.
+    let currentUrls = urls;
+    const urlFor = (i: number): string => {
+      const entry = currentUrls.files.find((f) => f.fileIndex === i);
+      if (!entry) throw new Error(`missing url for file ${i}`);
+      return entry.url;
+    };
+
+    // Refresh presigned URLs mid-download by re-calling /download with the
+    // existing resumeToken. Server re-mints URLs without incrementing the
+    // counter. Called lazily when a retry suspects the URL expired (15m
+    // presign TTL — plenty, but a multi-hour download past TTL must be able
+    // to recover).
+    let lastRefresh = Date.now();
+    const maybeRefreshUrls = async (): Promise<void> => {
+      // Skip if URLs were minted <10 min ago; they're valid for ~1h total.
+      if (Date.now() - lastRefresh < 10 * 60 * 1000) return;
+      const res = await fetch(`/api/transfers/${id}/download`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeToken: currentUrls.resumeToken,
+        }),
+      });
+      if (!res.ok) return; // best-effort; fall through to retry the old URL
+      currentUrls = (await res.json()) as DownloadUrls;
+      lastRefresh = Date.now();
+    };
+
+    const decryptedFor = (i: number): ReadableStream<Uint8Array> => {
+      const ciphertext = resumableFetch({
+        urlProvider: async () => {
+          await maybeRefreshUrls();
+          return urlFor(i);
+        },
+        onRetry: ({ attempt, bytesReceived }) => {
+          setStatusText(
+            `Reconnecting (attempt ${attempt}) from ${formatBytes(
+              bytesReceived,
+            )}…`,
+          );
+        },
+      });
+      return decryptStream(fileKey, ciphertext);
     };
 
     const buildStream = (): ReadableStream<Uint8Array> => {
       if (manifest.files.length === 1) {
-        return lazyStream(() => decryptedFor(0));
+        return decryptedFor(0);
       }
       const entries = manifest.files.map((mf, i) => ({
         name: mf.name,
         lastModified: new Date(),
-        input: lazyStream(() => decryptedFor(i)),
+        input: decryptedFor(i),
       }));
       const zipStream = downloadZip(entries).body;
       if (!zipStream) throw new Error("zip stream unavailable");
@@ -515,29 +553,5 @@ async function loadManifest(
   const blob = new Uint8Array(await manifestRes.arrayBuffer());
   const manifest = await decryptManifest(fileKey, blob);
   setManifest(manifest);
-}
-
-function lazyStream(
-  factory: () => Promise<ReadableStream<Uint8Array>>,
-): ReadableStream<Uint8Array> {
-  let inner: ReadableStreamDefaultReader<Uint8Array> | null = null;
-  return new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      try {
-        if (!inner) {
-          const src = await factory();
-          inner = src.getReader();
-        }
-        const { value, done } = await inner.read();
-        if (done) controller.close();
-        else if (value) controller.enqueue(value);
-      } catch (err) {
-        controller.error(err);
-      }
-    },
-    cancel(reason) {
-      inner?.cancel(reason).catch(() => {});
-    },
-  });
 }
 

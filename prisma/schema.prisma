@@ -78,6 +78,19 @@ model Transfer {
   pendingRecipients String[] @default([])
   pendingMessage    String?
 
+  downloadSessions DownloadSession[]
+
   @@index([expiresAt])
   @@index([revoked, expiresAt])
+}
+
+model DownloadSession {
+  token      String   @id
+  transferId String
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now()) @updatedAt
+  transfer   Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  @@index([transferId])
+  @@index([createdAt])
 }
